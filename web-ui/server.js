@@ -308,7 +308,8 @@ app.post("/api/tunnel/start", (req, res) => {
 
   const env = { ...process.env, CONTROL_PLANE_API_KEY: apiKey };
 
-  tunnelProcess = spawn(tcPath, ["start", "--profile", "nonny-tunnel"], {
+  // Use 'run' command for tunnel-client
+  tunnelProcess = spawn(tcPath, ["run", "--profile", "nonny-tunnel"], {
     env,
     stdio: ["pipe", "pipe", "pipe"],
   });

@@ -10,6 +10,9 @@
 # ============================================================
 set -euo pipefail
 
+# Ensure ~/.local/bin is in PATH for uv and serena tools
+export PATH="$HOME/.local/bin:$PATH"
+
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 CLIENT="$ROOT/tunnel-client/tunnel-client"
 PROFILE_TEMPLATE="$ROOT/profiles/nonny-tunnel.yaml"
@@ -60,7 +63,6 @@ banner() {
 
 # ── Preflight Checks ────────────────────────────────────────
 preflight() {
-  # tunnel-client binary
   if [ ! -f "$CLIENT" ]; then
     local found
     found=$(find "$ROOT/tunnel-client" -name "tunnel-client" -type f 2>/dev/null | head -1)
@@ -71,22 +73,18 @@ preflight() {
     fi
   fi
 
-  # Profile template
   if [ ! -f "$PROFILE_TEMPLATE" ]; then
     fail "Profile template not found: $PROFILE_TEMPLATE"
   fi
 
-  # Local config (Tunnel ID)
   if [ ! -f "$LOCAL_CONFIG" ]; then
     fail "Tunnel ID not configured. Run ./configure.sh or ./setup.sh first."
   fi
 
-  # MCP Server
   if ! command -v serena &>/dev/null; then
     fail "MCP Server is not installed or not in PATH. Install with: uv tool install -p 3.13 serena-agent"
   fi
 
-  # API key in Keychain
   if ! security find-generic-password -a "$KEYCHAIN_ACCOUNT" -s "$KEYCHAIN_SERVICE" -w &>/dev/null; then
     fail "API key not found in Keychain. Run ./configure.sh or ./setup.sh first."
   fi
@@ -103,7 +101,6 @@ preflight() {
 
 # ── Build Profile ────────────────────────────────────────────
 build_profile() {
-  # Read Tunnel ID
   # shellcheck source=/dev/null
   source "$LOCAL_CONFIG"
 
@@ -133,7 +130,7 @@ start_tunnel() {
 
   echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
   echo -e "${CYAN}│                                              │${NC}"
-  echo -e "${CYAN}│   🟢 Nonny Tunnel is starting…               │${NC}"
+  echo -e "${CYAN}│   🟢 Nonny Tunnel is running…                │${NC}"
   echo -e "${CYAN}│   Status UI: ${BOLD}http://127.0.0.1:18010/ui${NC}${CYAN}      │${NC}"
   echo -e "${CYAN}│                                              │${NC}"
   echo -e "${CYAN}│   Keep this window open while using ChatGPT. │${NC}"
@@ -142,7 +139,8 @@ start_tunnel() {
   echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
   echo ""
 
-  "$CLIENT" start --profile "$PROFILE_NAME"
+  # tunnel-client uses 'run' command
+  "$CLIENT" run --profile "$PROFILE_NAME"
 }
 
 banner
