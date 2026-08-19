@@ -17,7 +17,7 @@
       --bg-card: rgba(16, 16, 28, 0.75);
       --bg-card-hover: rgba(24, 24, 42, 0.85);
       --bg-input: rgba(12, 12, 22, 0.9);
-      --border: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.07);
       --border-focus: rgba(168, 85, 247, 0.5);
       --text-primary: #f0f0f5;
       --text-secondary: #8888a0;
@@ -44,7 +44,6 @@
       overflow-x: hidden;
     }
 
-    /* ── Background ───────────────────────────────────── */
     .bg-effect {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -56,7 +55,7 @@
       position: absolute;
       width: 700px; height: 700px;
       top: -250px; right: -150px;
-      background: radial-gradient(circle, rgba(168, 85, 247, 0.07) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
       animation: floatA 20s ease-in-out infinite;
     }
     .bg-effect::after {
@@ -64,7 +63,7 @@
       position: absolute;
       width: 600px; height: 600px;
       bottom: -150px; left: -100px;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
       animation: floatA 25s ease-in-out infinite reverse;
     }
     @keyframes floatA {
@@ -83,7 +82,7 @@
     /* ── Header ───────────────────────────────────────── */
     .header {
       text-align: center;
-      margin-bottom: 48px;
+      margin-bottom: 40px;
     }
     .header-logo {
       display: inline-flex;
@@ -100,11 +99,6 @@
       justify-content: center;
       font-size: 26px;
       box-shadow: 0 0 40px var(--accent-glow);
-      animation: iconGlow 3s ease-in-out infinite;
-    }
-    @keyframes iconGlow {
-      0%, 100% { box-shadow: 0 0 30px var(--accent-glow); }
-      50% { box-shadow: 0 0 50px var(--accent-glow), 0 0 80px rgba(168,85,247,0.1); }
     }
     .header h1 {
       font-size: 30px;
@@ -134,7 +128,7 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      margin: 24px 0;
+      margin: 22px 0;
       flex-wrap: wrap;
     }
     .arch-node {
@@ -162,7 +156,7 @@
       background: var(--bg-secondary);
       border-radius: var(--radius);
       padding: 5px;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
       border: 1px solid var(--border);
     }
     .tab {
@@ -200,8 +194,8 @@
 
     /* ── Panel ────────────────────────────────────────── */
     .panel { display: none; }
-    .panel.active { display: block; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .panel.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ── Card ─────────────────────────────────────────── */
     .card {
@@ -210,15 +204,15 @@
       -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 28px;
+      padding: 26px;
       margin-bottom: 16px;
       transition: border-color 0.25s;
     }
     .card:hover { border-color: rgba(255,255,255,0.1); }
     .card-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -231,19 +225,19 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 13px 16px;
+      padding: 12px 16px;
       border-radius: var(--radius-sm);
-      margin-bottom: 3px;
+      margin-bottom: 4px;
       transition: background 0.2s;
     }
     .check-item:hover { background: rgba(255,255,255,0.02); }
     .check-icon {
-      width: 30px; height: 30px;
+      width: 28px; height: 28px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 13px;
       flex-shrink: 0;
       font-weight: 600;
     }
@@ -265,7 +259,7 @@
     }
 
     /* ── Form ─────────────────────────────────────────── */
-    .form-group { margin-bottom: 22px; }
+    .form-group { margin-bottom: 20px; }
     .form-label {
       display: block;
       font-size: 13px;
@@ -303,14 +297,14 @@
 
     /* ── Buttons ──────────────────────────────────────── */
     .btn {
-      padding: 13px 26px;
+      padding: 12px 22px;
       border: none;
       border-radius: var(--radius-sm);
       font-family: inherit;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.25s;
+      transition: all 0.2s;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -319,23 +313,23 @@
     .btn-primary {
       background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
       color: white;
-      box-shadow: 0 4px 20px var(--accent-glow);
+      box-shadow: 0 4px 16px var(--accent-glow);
     }
     .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px var(--accent-glow);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px var(--accent-glow);
     }
     .btn-success {
       background: linear-gradient(135deg, var(--success), #059669);
       color: white;
       box-shadow: 0 4px 16px rgba(16,185,129,0.2);
     }
-    .btn-success:hover:not(:disabled) { transform: translateY(-2px); }
+    .btn-success:hover:not(:disabled) { transform: translateY(-1px); }
     .btn-danger {
       background: linear-gradient(135deg, var(--error), #dc2626);
       color: white;
     }
-    .btn-danger:hover:not(:disabled) { transform: translateY(-2px); }
+    .btn-danger:hover:not(:disabled) { transform: translateY(-1px); }
     .btn-ghost {
       background: transparent;
       color: var(--text-secondary);
@@ -345,7 +339,38 @@
       background: rgba(255,255,255,0.04);
       color: var(--text-primary);
     }
-    .btn-row { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+    .btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+    /* ── Copy Box ─────────────────────────────────────── */
+    .copy-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #050509;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-primary);
+      margin: 8px 0 16px;
+    }
+    .copy-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
 
     /* ── Alert ────────────────────────────────────────── */
     .alert {
@@ -356,16 +381,17 @@
       margin-bottom: 16px;
       display: none;
     }
-    .alert.show { display: block; animation: fadeIn 0.3s ease; }
+    .alert.show { display: block; animation: fadeIn 0.25s ease; }
     .alert-success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
     .alert-error { background: var(--error-bg); color: var(--error); border: 1px solid rgba(239,68,68,0.2); }
+    .alert-warning { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
 
     /* ── Tunnel Status ────────────────────────────────── */
     .tunnel-status {
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 22px 26px;
+      padding: 20px 24px;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -395,7 +421,7 @@
       background: #050509;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      padding: 18px;
+      padding: 16px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
       line-height: 1.8;
@@ -411,7 +437,6 @@
     .log-line { padding: 1px 0; }
     .log-line.stderr { color: var(--warning); }
 
-    /* ── Input wrapper ────────────────────────────────── */
     .input-wrapper { position: relative; }
     .toggle-visibility {
       position: absolute;
@@ -428,7 +453,6 @@
     }
     .toggle-visibility:hover { color: var(--text-secondary); }
 
-    /* ── Footer ───────────────────────────────────────── */
     .footer {
       text-align: center;
       margin-top: 48px;
@@ -497,10 +521,10 @@
     <!-- Panel 1: Prerequisites -->
     <div class="panel active" id="panel-prereqs">
       <div class="card">
-        <div class="card-title"><span class="emoji">🔍</span> System Check</div>
+        <div class="card-title"><span class="emoji">🔍</span> System Readiness</div>
         <ul class="check-list" id="check-list"></ul>
         <div class="btn-row">
-          <button class="btn btn-ghost" onclick="checkStatus()">↻ Re-check</button>
+          <button class="btn btn-ghost" onclick="checkStatus(true)">↻ Re-check (Force)</button>
         </div>
       </div>
     </div>
@@ -510,14 +534,14 @@
       <div id="alert-config" class="alert"></div>
 
       <div class="card">
-        <div class="card-title"><span class="emoji">🔑</span> API Credentials</div>
+        <div class="card-title"><span class="emoji">🔑</span> Credentials Setup</div>
 
         <div class="form-group">
           <label class="form-label" for="input-tunnel-id">Tunnel ID</label>
           <input type="text" id="input-tunnel-id" class="form-input" placeholder="tunnel_0123456789abcdef0123456789abcdef" spellcheck="false" autocomplete="off">
           <div class="form-hint">
-            Format: <code>tunnel_</code> followed by 32 lowercase hex characters.
-            Create one at <a href="https://platform.openai.com/settings/organization/tunnels" target="_blank">OpenAI Platform → Tunnels</a>
+            Format: <code>tunnel_</code> + 32 lowercase hex characters.
+            Obtain from <a href="https://platform.openai.com/settings/organization/tunnels" target="_blank">OpenAI Platform → Tunnels</a>
           </div>
         </div>
 
@@ -528,32 +552,33 @@
             <button class="toggle-visibility" onclick="toggleKeyVisibility()" title="Show/hide key">👁</button>
           </div>
           <div class="form-hint">
-            Use a <strong>Runtime API key</strong> (not Admin). Stored securely in macOS Keychain.
+            Use a <strong>Runtime API key</strong> (not Admin). Automatically stored in macOS Keychain.
           </div>
         </div>
 
         <div class="btn-row">
           <button class="btn btn-primary" id="btn-save" onclick="saveConfig()">💾 Save Credentials</button>
+          <button class="btn btn-ghost" id="btn-test-conn" onclick="testConnection()">🔍 Test Connection</button>
           <button class="btn btn-ghost" id="btn-delete-key" onclick="deleteApiKey()">🗑 Remove API Key</button>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="emoji">🛡</span> Security</div>
+        <div class="card-title"><span class="emoji">🛡</span> Security Highlights</div>
         <ul class="check-list">
           <li class="check-item">
             <span class="check-icon ok">🔒</span>
             <span class="check-name">API key encrypted in macOS Keychain</span>
-            <span class="check-detail">per-user encryption</span>
+            <span class="check-detail">per-user Keychain</span>
           </li>
           <li class="check-item">
             <span class="check-icon ok">📋</span>
-            <span class="check-name">Tunnel ID stored locally</span>
+            <span class="check-name">Tunnel ID isolated locally</span>
             <span class="check-detail">config/team.env</span>
           </li>
           <li class="check-item">
             <span class="check-icon ok">🚫</span>
-            <span class="check-name">Never committed to git</span>
+            <span class="check-name">Git safe (never pushed to GitHub)</span>
             <span class="check-detail">.gitignore</span>
           </li>
         </ul>
@@ -571,54 +596,43 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="emoji">🚀</span> Control</div>
+        <div class="card-title"><span class="emoji">🚀</span> Control Tunnel</div>
         <div class="btn-row">
           <button class="btn btn-success" id="btn-start" onclick="startTunnel()">▶ Start Tunnel</button>
           <button class="btn btn-danger" id="btn-stop" onclick="stopTunnel()" disabled>■ Stop Tunnel</button>
-          <button class="btn btn-ghost" onclick="refreshLogs()">↻ Refresh Logs</button>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title"><span class="emoji">📋</span> Live Logs</div>
+        <div class="card-title"><span class="emoji">📋</span> Live Stream Logs</div>
         <div class="log-viewer" id="log-viewer">
           <div class="log-line" style="color:var(--text-muted)">Waiting for tunnel to start…</div>
         </div>
       </div>
 
       <div class="card" style="margin-top: 8px;">
-        <div class="card-title"><span class="emoji">📖</span> Next Steps</div>
-        <ul class="check-list">
-          <li class="check-item">
-            <span class="check-icon ok">1</span>
-            <span class="check-name">Start the tunnel above</span>
-          </li>
-          <li class="check-item">
-            <span class="check-icon ok">2</span>
-            <span class="check-name">Open <a href="https://chatgpt.com/plugins" target="_blank" style="color:var(--accent)">ChatGPT Plugins</a> → Add developer-mode app → Tunnel</span>
-          </li>
-          <li class="check-item">
-            <span class="check-icon ok">3</span>
-            <span class="check-name">Tell ChatGPT: "Activate the project /path/to/project"</span>
-          </li>
-          <li class="check-item">
-            <span class="check-icon ok">4</span>
-            <span class="check-name">Tunnel status UI: <a href="http://127.0.0.1:18010/ui" target="_blank" style="color:var(--accent)">http://127.0.0.1:18010/ui</a></span>
-          </li>
-        </ul>
+        <div class="card-title"><span class="emoji">💬</span> ChatGPT Command Helper</div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Copy and send this prompt to ChatGPT to link your project:</p>
+        <div class="copy-box">
+          <span id="chatgpt-prompt">Activate the project /Users/username/my-project, then show the current configuration.</span>
+          <button class="copy-btn" onclick="copyText('chatgpt-prompt', this)">Copy Prompt</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Tunnel Dashboard URL: <a href="http://127.0.0.1:18010/ui" target="_blank" style="color:var(--accent)">http://127.0.0.1:18010/ui</a>
+        </div>
       </div>
     </div>
 
     <footer class="footer">
       Nonny Tunnel for Mac — by <strong>mr.j</strong> ·
-      <a href="https://github.com/job12345/nonny-Tunnel-for-mac" target="_blank">GitHub</a>
+      <a href="https://github.com/job12345/nonny-Tunnel-for-mac" target="_blank">GitHub Repository</a>
     </footer>
   </div>
 
   <script>
     let currentTab = 'prereqs';
     let statusData = null;
-    let logPollTimer = null;
+    let pollTimer = null;
 
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => switchTab(tab.dataset.tab));
@@ -628,15 +642,17 @@
       currentTab = name;
       document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
       document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
-      if (name === 'tunnel') startLogPolling();
-      else stopLogPolling();
+      if (name === 'tunnel') startPolling();
+      else stopPolling();
     }
 
-    async function checkStatus() {
+    async function checkStatus(force = false) {
       const list = document.getElementById('check-list');
-      list.innerHTML = '<li class="check-item"><span class="check-icon loading">⟳</span><span class="check-name">Checking…</span></li>';
+      if (force || !statusData) {
+        list.innerHTML = '<li class="check-item"><span class="check-icon loading">⟳</span><span class="check-name">Checking system…</span></li>';
+      }
       try {
-        const res = await fetch('/api/status');
+        const res = await fetch(`/api/status${force ? '?refresh=1' : ''}`);
         statusData = await res.json();
         renderChecks();
         updateBadges();
@@ -653,9 +669,9 @@
       const items = [
         { label: 'curl', data: checks.curl },
         { label: 'Node.js', data: checks.node },
-        { label: 'uv (Python)', data: checks.uv },
+        { label: 'uv (Python Tool)', data: checks.uv },
         { label: 'MCP Server', data: checks.mcpServer },
-        { label: 'tunnel-client', data: checks.tunnelClient },
+        { label: 'tunnel-client Binary', data: checks.tunnelClient },
       ];
 
       list.innerHTML = items.map(item => {
@@ -684,7 +700,7 @@
       list.innerHTML += `
         <li class="check-item" style="border-top:1px solid var(--border);margin-top:8px;padding-top:12px;">
           <span class="check-icon ok">🖥</span>
-          <span class="check-name">System</span>
+          <span class="check-name">System Architecture</span>
           <span class="check-detail">${checks.system.platform} / ${checks.system.arch}</span>
         </li>`;
     }
@@ -732,20 +748,50 @@
           if (data.error?.includes('Tunnel ID')) document.getElementById('input-tunnel-id').classList.add('error');
           if (data.error?.includes('API Key')) document.getElementById('input-api-key').classList.add('error');
         } else {
-          showAlert(alertEl, 'success', '✓ Credentials saved! API key stored in macOS Keychain.');
+          showAlert(alertEl, 'success', '✓ Credentials saved! API key secured in macOS Keychain.');
           document.getElementById('input-api-key').value = '';
           document.getElementById('input-tunnel-id').classList.remove('error');
           document.getElementById('input-api-key').classList.remove('error');
           document.getElementById('input-tunnel-id').classList.add('success');
-          await checkStatus();
+          await checkStatus(true);
         }
       } catch (e) { showAlert(alertEl, 'error', 'Network error: ' + e.message); }
       finally { btn.disabled = false; btn.textContent = '💾 Save Credentials'; }
     }
 
+    async function testConnection() {
+      const alertEl = document.getElementById('alert-config');
+      const btn = document.getElementById('btn-test-conn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Testing…';
+
+      try {
+        const tunnelId = document.getElementById('input-tunnel-id').value.trim();
+        const apiKey = document.getElementById('input-api-key').value.trim();
+
+        const res = await fetch('/api/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tunnelId, apiKey }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showAlert(alertEl, 'success', '✓ Connection Test Passed! Tunnel configuration is valid.');
+        } else {
+          showAlert(alertEl, 'error', '✕ Connection Test Failed:\n' + (data.output || 'Check your Tunnel ID & API Key.'));
+        }
+      } catch (e) {
+        showAlert(alertEl, 'error', 'Test error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Test Connection';
+      }
+    }
+
     async function deleteApiKey() {
       if (!confirm('Remove API key from Keychain?')) return;
-      try { await fetch('/api/configure/delete-key', { method: 'POST' }); showAlert(document.getElementById('alert-config'), 'success', '✓ API key removed.'); await checkStatus(); }
+      try { await fetch('/api/configure/delete-key', { method: 'POST' }); showAlert(document.getElementById('alert-config'), 'success', '✓ API key removed.'); await checkStatus(true); }
       catch (e) { showAlert(document.getElementById('alert-config'), 'error', 'Failed to remove key.'); }
     }
 
@@ -764,7 +810,7 @@
         if (!res.ok) { showAlert(alertEl, 'error', data.error); btn.disabled = false; btn.textContent = '▶ Start Tunnel'; return; }
         showAlert(alertEl, 'success', `✓ Tunnel started (PID: ${data.pid})`);
         updateTunnelUI(true, data.pid);
-        startLogPolling();
+        startPolling();
       } catch (e) { showAlert(alertEl, 'error', 'Network error: ' + e.message); btn.disabled = false; btn.textContent = '▶ Start Tunnel'; }
     }
 
@@ -782,10 +828,6 @@
       document.getElementById('btn-stop').disabled = !running;
     }
 
-    async function refreshLogs() {
-      try { const res = await fetch('/api/tunnel/logs'); renderLogs((await res.json()).logs); } catch {}
-    }
-
     function renderLogs(logs) {
       const v = document.getElementById('log-viewer');
       if (!logs?.length) { v.innerHTML = '<div class="log-line" style="color:var(--text-muted)">No logs yet…</div>'; return; }
@@ -793,22 +835,39 @@
       v.scrollTop = v.scrollHeight;
     }
 
-    function startLogPolling() {
-      stopLogPolling();
-      logPollTimer = setInterval(async () => {
+    // Single unified polling loop (Combines status and logs)
+    function startPolling() {
+      stopPolling();
+      pollTimer = setInterval(async () => {
         try {
-          const [s, l] = await Promise.all([fetch('/api/tunnel/status'), fetch('/api/tunnel/logs')]);
-          const sd = await s.json(), ld = await l.json();
-          updateTunnelUI(sd.running, sd.pid); renderLogs(ld.logs);
+          const res = await fetch('/api/tunnel/status');
+          const data = await res.json();
+          updateTunnelUI(data.running, data.pid);
+          renderLogs(data.logs);
         } catch {}
       }, 2000);
     }
 
-    function stopLogPolling() { if (logPollTimer) { clearInterval(logPollTimer); logPollTimer = null; } }
+    function stopPolling() {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    }
 
     function showAlert(el, type, msg) {
-      el.className = `alert alert-${type} show`; el.textContent = msg;
+      el.className = `alert alert-${type} show`;
+      el.textContent = msg;
       if (type === 'success') setTimeout(() => el.classList.remove('show'), 5000);
+    }
+
+    function copyText(elementId, btn) {
+      const text = document.getElementById(elementId).textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.textContent = originalText; }, 2000);
+      });
     }
 
     function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }

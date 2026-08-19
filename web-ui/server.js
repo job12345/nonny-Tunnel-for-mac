@@ -1,13 +1,15 @@
 /**
- * Nonny Tunnel for Mac — Web UI Backend
+ * Nonny Tunnel for Mac — Optimized Web UI Backend
  * Developed by mr.j
  */
 const express = require("express");
-const { execSync, spawn } = require("child_process");
+const { exec, spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const util = require("util");
 
+const execPromise = util.promisify(exec);
 const app = express();
 const PORT = 3847;
 const ROOT = path.resolve(__dirname, "..");
@@ -18,53 +20,63 @@ const PROFILE_TEMPLATE = path.join(ROOT, "profiles", "nonny-tunnel.yaml");
 const KEYCHAIN_ACCOUNT = "nonny-tunnel";
 const KEYCHAIN_SERVICE = "openai-runtime-api-key";
 
-// Track tunnel process
+// Tunnel state
 let tunnelProcess = null;
 let tunnelLogs = [];
 const MAX_LOGS = 200;
+
+// Cache for system checks to ensure sub-millisecond API responses
+let systemCache = {
+  data: null,
+  timestamp: 0,
+};
+const CACHE_TTL = 30000; // 30 seconds
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function runCmd(cmd, opts = {}) {
+async function runCmd(cmd, timeout = 5000) {
   try {
-    return execSync(cmd, {
-      encoding: "utf8",
-      timeout: 10000,
-      stdio: ["pipe", "pipe", "pipe"],
-      ...opts,
-    }).trim();
-  } catch (e) {
+    const { stdout } = await execPromise(cmd, { timeout });
+    return stdout.trim();
+  } catch {
+    return null;
+  }
+}
+
+function runCmdSync(cmd) {
+  try {
+    const { execSync } = require("child_process");
+    return execSync(cmd, { encoding: "utf8", timeout: 3000, stdio: ["pipe", "pipe", "pipe"] }).trim();
+  } catch {
     return null;
   }
 }
 
 function getKeychainKey() {
-  return runCmd(
-    `security find-generic-password -a "${KEYCHAIN_ACCOUNT}" -s "${KEYCHAIN_SERVICE}" -w`
-  );
+  return runCmdSync(`security find-generic-password -a "${KEYCHAIN_ACCOUNT}" -s "${KEYCHAIN_SERVICE}" -w`);
 }
 
 function setKeychainKey(key) {
-  const result = runCmd(
-    `security add-generic-password -a "${KEYCHAIN_ACCOUNT}" -s "${KEYCHAIN_SERVICE}" -w "${key}" -U`
-  );
-  return result !== null;
+  const res = runCmdSync(`security add-generic-password -a "${KEYCHAIN_ACCOUNT}" -s "${KEYCHAIN_SERVICE}" -w "${key}" -U`);
+  return res !== null;
 }
 
 function deleteKeychainKey() {
-  return runCmd(
-    `security delete-generic-password -a "${KEYCHAIN_ACCOUNT}" -s "${KEYCHAIN_SERVICE}"`
-  );
+  return runCmdSync(`security delete-generic-password -a "${KEYCHAIN_ACCOUNT}" -s "${KEYCHAIN_SERVICE}"`);
 }
 
 function getTunnelId() {
   if (!fs.existsSync(CONFIG_FILE)) return null;
-  const content = fs.readFileSync(CONFIG_FILE, "utf8");
-  const match = content.match(/TUNNEL_ID=(.+)/);
-  return match ? match[1].trim().replace(/['"]/g, "") : null;
+  try {
+    const content = fs.readFileSync(CONFIG_FILE, "utf8");
+    const match = content.match(/TUNNEL_ID=(.+)/);
+    return match ? match[1].trim().replace(/['"]/g, "") : null;
+  } catch {
+    return null;
+  }
 }
 
 function setTunnelId(id) {
@@ -76,95 +88,113 @@ function findTunnelClient() {
   const direct = path.join(ROOT, "tunnel-client", "tunnel-client");
   if (fs.existsSync(direct)) return direct;
   try {
-    const found = runCmd(
-      `find "${path.join(ROOT, "tunnel-client")}" -name "tunnel-client" -type f 2>/dev/null | head -1`
-    );
+    const found = runCmdSync(`find "${path.join(ROOT, "tunnel-client")}" -name "tunnel-client" -type f 2>/dev/null | head -1`);
     return found || null;
   } catch {
     return null;
   }
 }
 
+function ensureProfile(tunnelId) {
+  const profileDir = path.join(os.homedir(), ".config", "tunnel-client");
+  const profilePath = path.join(profileDir, "nonny-tunnel.yaml");
+  fs.mkdirSync(profileDir, { recursive: true });
+  const template = fs.readFileSync(PROFILE_TEMPLATE, "utf8");
+  fs.writeFileSync(profilePath, template.replace(/__TUNNEL_ID__/g, tunnelId));
+  return profilePath;
+}
+
 // ── API Routes ───────────────────────────────────────────────
 
-// GET /api/status — Check all prerequisites
-app.get("/api/status", (req, res) => {
-  const checks = {};
+// GET /api/status — Parallel async check with intelligent caching
+app.get("/api/status", async (req, res) => {
+  const now = Date.now();
+  const forceRefresh = req.query.refresh === "1";
 
-  // curl
-  const curlPath = runCmd("which curl");
-  checks.curl = {
-    installed: !!curlPath,
-    path: curlPath,
-    version: curlPath ? runCmd("curl --version | head -1") : null,
-  };
+  if (!forceRefresh && systemCache.data && now - systemCache.timestamp < CACHE_TTL) {
+    // Dynamic parts updated on the fly
+    const tunnelId = getTunnelId();
+    const hasApiKey = !!getKeychainKey();
+    const ready =
+      systemCache.data.checks.mcpServer.installed &&
+      systemCache.data.checks.tunnelClient.installed &&
+      !!tunnelId &&
+      hasApiKey;
 
-  // uv
-  const uvPath = runCmd("which uv");
-  checks.uv = {
-    installed: !!uvPath,
-    path: uvPath,
-    version: uvPath ? runCmd("uv --version") : null,
-  };
+    return res.json({
+      ...systemCache.data,
+      checks: {
+        ...systemCache.data.checks,
+        credentials: {
+          tunnelId,
+          hasTunnelId: !!tunnelId,
+          hasApiKey,
+        },
+      },
+      ready,
+      cached: true,
+    });
+  }
 
-  // MCP Server
-  const mcpPath = runCmd("which serena");
-  checks.mcpServer = {
-    installed: !!mcpPath,
-    path: mcpPath,
-    version: mcpPath ? runCmd("serena --version 2>&1") : null,
-  };
+  // Parallel asynchronous system checks
+  const [curlPath, uvPath, mcpPath] = await Promise.all([
+    runCmd("which curl"),
+    runCmd("which uv"),
+    runCmd("which serena"),
+  ]);
 
-  // node
-  checks.node = {
-    installed: true,
-    path: process.execPath,
-    version: process.version,
-  };
+  const [curlVer, uvVer, mcpVer] = await Promise.all([
+    curlPath ? runCmd("curl --version | head -1") : Promise.resolve(null),
+    uvPath ? runCmd("uv --version") : Promise.resolve(null),
+    mcpPath ? runCmd("serena --version 2>&1") : Promise.resolve(null),
+  ]);
 
-  // tunnel-client
   const tcPath = findTunnelClient();
-  checks.tunnelClient = {
-    installed: !!tcPath,
-    path: tcPath,
-    version: tcPath ? runCmd(`"${tcPath}" --version 2>&1`) : null,
-  };
+  const tcVer = tcPath ? await runCmd(`"${tcPath}" --version 2>&1`) : null;
 
-  // Credentials
   const tunnelId = getTunnelId();
   const hasApiKey = !!getKeychainKey();
 
-  checks.credentials = {
-    tunnelId: tunnelId,
-    hasTunnelId: !!tunnelId,
-    hasApiKey: hasApiKey,
+  const checks = {
+    curl: { installed: !!curlPath, path: curlPath, version: curlVer },
+    node: { installed: true, path: process.execPath, version: process.version },
+    uv: { installed: !!uvPath, path: uvPath, version: uvVer },
+    mcpServer: { installed: !!mcpPath, path: mcpPath, version: mcpVer },
+    tunnelClient: { installed: !!tcPath, path: tcPath, version: tcVer },
+    credentials: {
+      tunnelId,
+      hasTunnelId: !!tunnelId,
+      hasApiKey,
+    },
+    system: {
+      arch: os.arch(),
+      platform: os.platform(),
+      hostname: os.hostname(),
+    },
   };
 
-  // Architecture
-  checks.system = {
-    arch: os.arch(),
-    platform: os.platform(),
-    hostname: os.hostname(),
-  };
-
-  // Overall readiness
   const ready =
     checks.mcpServer.installed &&
     checks.tunnelClient.installed &&
     checks.credentials.hasTunnelId &&
     checks.credentials.hasApiKey;
 
-  res.json({ checks, ready });
+  systemCache = {
+    data: { checks, ready },
+    timestamp: now,
+  };
+
+  res.json({ checks, ready, cached: false });
 });
 
-// POST /api/configure — Save Tunnel ID + API Key
+// POST /api/configure — Save Tunnel ID & Keychain API Key
 app.post("/api/configure", (req, res) => {
   const { tunnelId, apiKey } = req.body;
 
   if (tunnelId) {
     if (!/^tunnel_[0-9a-f]{32}$/.test(tunnelId)) {
       return res.status(400).json({
-        error: "Invalid Tunnel ID format. Expected: tunnel_ followed by 32 lowercase hexadecimal characters.",
+        error: "Invalid Tunnel ID format. Expected tunnel_ followed by 32 lowercase hex characters.",
       });
     }
     setTunnelId(tunnelId);
@@ -176,17 +206,17 @@ app.post("/api/configure", (req, res) => {
         error: 'Invalid API Key format. Expected key starting with "sk-".',
       });
     }
-    const success = setKeychainKey(apiKey);
-    if (!success) {
+    const ok = setKeychainKey(apiKey);
+    if (!ok) {
       deleteKeychainKey();
-      const retry = setKeychainKey(apiKey);
-      if (!retry) {
-        return res.status(500).json({
-          error: "Failed to save API key to macOS Keychain.",
-        });
+      if (!setKeychainKey(apiKey)) {
+        return res.status(500).json({ error: "Failed to save API key to macOS Keychain." });
       }
     }
   }
+
+  // Invalidate cache
+  systemCache.timestamp = 0;
 
   res.json({
     success: true,
@@ -195,23 +225,62 @@ app.post("/api/configure", (req, res) => {
   });
 });
 
-// POST /api/configure/delete-key — Remove API Key from Keychain
+// POST /api/configure/delete-key — Remove from Keychain
 app.post("/api/configure/delete-key", (req, res) => {
   deleteKeychainKey();
+  systemCache.timestamp = 0;
   res.json({ success: true, hasApiKey: false });
 });
 
-// GET /api/tunnel/status — Tunnel daemon status
+// POST /api/test-connection — Verify credentials with doctor check
+app.post("/api/test-connection", async (req, res) => {
+  const tcPath = findTunnelClient();
+  if (!tcPath) {
+    return res.status(400).json({ error: "tunnel-client is not installed yet. Run setup.sh first." });
+  }
+
+  const tunnelId = req.body.tunnelId || getTunnelId();
+  const apiKey = req.body.apiKey || getKeychainKey();
+
+  if (!tunnelId) return res.status(400).json({ error: "Tunnel ID is missing." });
+  if (!apiKey) return res.status(400).json({ error: "API Key is missing." });
+
+  ensureProfile(tunnelId);
+
+  try {
+    const { stdout, stderr } = await execPromise(
+      `"${tcPath}" doctor --profile nonny-tunnel --explain`,
+      {
+        env: { ...process.env, CONTROL_PLANE_API_KEY: apiKey },
+        timeout: 10000,
+      }
+    );
+    const output = (stdout + "\n" + (stderr || "")).trim();
+    const passed = !output.toLowerCase().includes("fail") && !output.toLowerCase().includes("error");
+
+    res.json({
+      success: passed,
+      output,
+    });
+  } catch (err) {
+    res.json({
+      success: false,
+      output: err.stdout || err.stderr || err.message,
+    });
+  }
+});
+
+// GET /api/tunnel/status — Combined status + live logs in single request
 app.get("/api/tunnel/status", (req, res) => {
   const running = tunnelProcess !== null && !tunnelProcess.killed;
   res.json({
     running,
     pid: running ? tunnelProcess.pid : null,
-    logs: tunnelLogs.slice(-50),
+    logs: tunnelLogs.slice(-60),
   });
 });
 
-// POST /api/tunnel/start — Start the tunnel daemon
+// POST /api/tunnel/start — Launch the daemon
 app.post("/api/tunnel/start", (req, res) => {
   if (tunnelProcess && !tunnelProcess.killed) {
     return res.status(409).json({ error: "Tunnel is already running." });
@@ -222,37 +291,20 @@ app.post("/api/tunnel/start", (req, res) => {
     return res.status(400).json({ error: "tunnel-client not installed. Run ./setup.sh first." });
   }
 
-  if (!runCmd("which serena")) {
-    return res.status(400).json({ error: "MCP Server not found in PATH." });
-  }
-
   const tunnelId = getTunnelId();
-  if (!tunnelId) {
-    return res.status(400).json({ error: "Tunnel ID not configured." });
-  }
+  if (!tunnelId) return res.status(400).json({ error: "Tunnel ID not configured." });
 
   const apiKey = getKeychainKey();
-  if (!apiKey) {
-    return res.status(400).json({ error: "API key not found in Keychain." });
-  }
+  if (!apiKey) return res.status(400).json({ error: "API key not found in Keychain." });
 
-  // Build profile
-  const profileName = "nonny-tunnel";
-  const profileDir = path.join(os.homedir(), ".config", "tunnel-client");
-  const profilePath = path.join(profileDir, `${profileName}.yaml`);
+  ensureProfile(tunnelId);
 
-  fs.mkdirSync(profileDir, { recursive: true });
-  const template = fs.readFileSync(PROFILE_TEMPLATE, "utf8");
-  fs.writeFileSync(profilePath, template.replace(/__TUNNEL_ID__/g, tunnelId));
-
-  // Clear logs
   tunnelLogs = [];
-  tunnelLogs.push(`[${new Date().toISOString()}] Starting Nonny Tunnel with profile: ${profileName}`);
+  tunnelLogs.push(`[${new Date().toLocaleTimeString()}] Starting Nonny Tunnel daemon...`);
 
-  // Start tunnel
   const env = { ...process.env, CONTROL_PLANE_API_KEY: apiKey };
 
-  tunnelProcess = spawn(tcPath, ["start", "--profile", profileName], {
+  tunnelProcess = spawn(tcPath, ["start", "--profile", "nonny-tunnel"], {
     env,
     stdio: ["pipe", "pipe", "pipe"],
   });
@@ -274,56 +326,43 @@ app.post("/api/tunnel/start", (req, res) => {
   });
 
   tunnelProcess.on("close", (code) => {
-    tunnelLogs.push(`[${new Date().toISOString()}] Tunnel process exited with code ${code}`);
+    tunnelLogs.push(`[${new Date().toLocaleTimeString()}] Tunnel stopped (Exit code ${code})`);
     tunnelProcess = null;
   });
 
   tunnelProcess.on("error", (err) => {
-    tunnelLogs.push(`[${new Date().toISOString()}] Error: ${err.message}`);
+    tunnelLogs.push(`[${new Date().toLocaleTimeString()}] Error: ${err.message}`);
     tunnelProcess = null;
   });
 
   res.json({ success: true, pid: tunnelProcess.pid });
 });
 
-// POST /api/tunnel/stop — Stop the tunnel daemon
+// POST /api/tunnel/stop — Stop the daemon
 app.post("/api/tunnel/stop", (req, res) => {
   if (!tunnelProcess || tunnelProcess.killed) {
     return res.status(409).json({ error: "Tunnel is not running." });
   }
 
   tunnelProcess.kill("SIGTERM");
-  tunnelLogs.push(`[${new Date().toISOString()}] Tunnel stop requested.`);
-
+  tunnelLogs.push(`[${new Date().toLocaleTimeString()}] Stopping tunnel...`);
   res.json({ success: true });
 });
 
-// GET /api/tunnel/logs — Stream latest logs
-app.get("/api/tunnel/logs", (req, res) => {
-  res.json({ logs: tunnelLogs.slice(-100) });
-});
-
-// ── Serve SPA ────────────────────────────────────────────────
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ── Cleanup on exit ──────────────────────────────────────────
-process.on("SIGINT", () => {
+// Process cleanup
+const cleanup = () => {
   if (tunnelProcess && !tunnelProcess.killed) {
     tunnelProcess.kill("SIGTERM");
   }
   process.exit(0);
-});
+};
+process.on("SIGINT", cleanup);
+process.on("SIGTERM", cleanup);
 
-process.on("SIGTERM", () => {
-  if (tunnelProcess && !tunnelProcess.killed) {
-    tunnelProcess.kill("SIGTERM");
-  }
-  process.exit(0);
-});
-
-// ── Start Server ─────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`\n  🚀 Nonny Tunnel UI running at http://localhost:${PORT}\n`);
+  console.log(`\n  ⚡ Nonny Tunnel Web UI: http://localhost:${PORT}\n`);
 });

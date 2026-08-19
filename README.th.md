@@ -31,9 +31,10 @@ MCP Server (ทำงานในเครื่อง)
 ### จุดเด่น
 - 🍎 **ออกแบบมาเพื่อ macOS โดยเฉพาะ** — รองรับทั้ง Apple Silicon (M1/M2/M3/M4) และชิป Intel
 - 🔐 **ปลอดภัยสูงสุด** — เก็บ API Key ใน **macOS Keychain** (ไม่บันทึกเป็น Plaintext)
-- 🖥 **มีหน้า Web Setup UI** — จัดการ ตั้งค่า และดูสถานะผ่านเบราว์เซอร์อย่างสวยงาม
+- 🖥 **Web Setup UI ประสิทธิภาพสูง** — มีฟังก์ชัน **🔍 Test Connection** ตรวจสอบ Key ได้ทันทีก่อนเริ่ม
+- ⚡ **Ultra Fast Start** — เปิด Tunnel ได้ทันทีในเวลา <1 วินาที ด้วยคำสั่ง `./start.sh --fast`
 - 📦 **ติดตั้งง่ายในคำสั่งเดียว** — ดาวน์โหลด `tunnel-client` เวอร์ชันล่าสุดอัตโนมัติพร้อมตรวจ Checksum
-- 📋 **Live Logs** — ดูการทำงานแบบเรียลไทม์ผ่านหน้าเว็บ
+- 📋 **Live Logs & 1-Click Copy** — ดูการทำงานแบบเรียลไทม์ และมีปุ่มก็อปปี้ Prompt ไปสั่ง ChatGPT ได้สะดวก
 - 🚀 **ใช้งานง่ายทุกวัน** — รัน `./start.sh` พร้อมทำงานทันที
 
 ---
@@ -78,15 +79,16 @@ cd nonny-Tunnel-for-mac
 
 หน้าเว็บแบ่งออกเป็น 3 ขั้นตอน:
 - **① Prerequisites** — ตรวจสอบความพร้อมของระบบ
-- **② Configuration** — กรอก Tunnel ID และ OpenAI Runtime API Key (ระบบจะเซฟลง Keychain อัตโนมัติ)
-- **③ Tunnel** — กด Start เพื่อเริ่ม Tunnel และดู Log แบบเรียลไทม์
+- **② Configuration** — กรอก Tunnel ID และ OpenAI Runtime API Key แล้วกด **🔍 Test Connection** เพื่อทดสอบ
+- **③ Tunnel** — กด Start เพื่อเริ่ม Tunnel, ดู Log แบบเรียลไทม์ และก็อปปี้ Prompt ไปสั่ง ChatGPT
 
 ### 4. การใช้งานในแต่ละวัน (Daily Use)
 
 เมื่อตั้งค่าเสร็จแล้ว ในวันถัดๆ ไป เพียงรันคำสั่ง:
 
 ```bash
-./start.sh
+./start.sh          # รันปกติพร้อมตรวจ Preflight Doctor
+./start.sh --fast   # รันแบบเร็วพิเศษ (Fast mode < 1 วินาที)
 ```
 
 หรือถ้าต้องการเปลี่ยน Tunnel ID / API Key ให้รัน:
@@ -115,7 +117,7 @@ Activate the project /Users/username/my-project, then show the current configura
 nonny-Tunnel-for-mac/
 ├── setup.sh              # สคริปต์ติดตั้งครั้งแรก
 ├── configure.sh          # สคริปต์เปิดหน้าตั้งค่า credentials
-├── start.sh              # สคริปต์เริ่มทำงาน Tunnel
+├── start.sh              # สคริปต์เริ่มทำงาน Tunnel (รองรับ --fast)
 ├── profiles/
 │   └── nonny-tunnel.yaml # Template การตั้งค่า Profile
 ├── config/
@@ -123,9 +125,9 @@ nonny-Tunnel-for-mac/
 │   └── team.env          # เก็บ Tunnel ID (ไม่ถูก commit ขึ้น git)
 ├── web-ui/
 │   ├── package.json
-│   ├── server.js         # Backend Express API
+│   ├── server.js         # Backend Express API พร้อม Caching & Parallel checks
 │   └── public/
-│       └── index.html    # หน้า Dashboard UI
+│       └── index.html    # หน้า Dashboard UI พร้อมระบบ Test Connection
 ├── .gitignore
 ├── README.md             # คู่มือภาษาอังกฤษ
 ├── README.th.md          # คู่มือภาษาไทย
@@ -140,26 +142,6 @@ nonny-Tunnel-for-mac/
 - **Tunnel ID** ถูกเก็บแยกไว้ที่ `config/team.env`
 - ไฟล์ที่เป็นความลับทั้งหมดถูกเพิ่มใน `.gitignore` เรียบร้อยแล้ว จะไม่หลุดขึ้น GitHub แน่นอน
 - ⚠️ **คำแนะนำ**: อย่าใช้ Admin API Key เด็ดขาด ให้ใช้ **Runtime API Key** ที่มีสิทธิ์เฉพาะ Tunnel เท่านั้น
-
----
-
-## แก้ไขปัญหาเบื้องต้น (Troubleshooting)
-
-### หา MCP Server ไม่เจอ
-```bash
-uv tool install -p 3.13 serena-agent
-serena init
-```
-
-### ไม่พบ tunnel-client
-```bash
-./setup.sh
-```
-
-### Tunnel รันไม่ติด / Preflight Failed
-- ตรวจสอบว่า API Key ถูกต้อง และมีสิทธิ์ `Tunnels Read + Use`
-- ตรวจสอบว่า Tunnel ID ตรงกับ Organization / Workspace ใน OpenAI
-- ตรวจสอบ log ในหน้าต่าง Terminal
 
 ---
 

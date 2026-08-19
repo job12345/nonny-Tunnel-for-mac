@@ -32,7 +32,8 @@ Your Project Files
 
 - 🍎 **Built for macOS** — Apple Silicon (M1/M2/M3/M4) and Intel supported
 - 🔐 **Secure credential storage** — API keys encrypted in macOS Keychain
-- 🖥 **Web-based Setup UI** — beautiful dashboard for configuration and tunnel management
+- 🖥 **Web-based Setup UI** — beautiful dashboard with Test Connection & live logs
+- ⚡ **Ultra Fast Start** — start the daemon in <1s with `./start.sh --fast`
 - 📦 **One-command setup** — automatic tunnel-client download with SHA-256 verification
 - 📋 **Live log viewer** — monitor tunnel activity in real-time
 - 🚀 **Easy daily use** — just run `./start.sh`
@@ -77,20 +78,18 @@ This will:
 
 ### 3. Configure (Web UI)
 
-The Setup UI has 3 tabs:
-
-| Tab | What it does |
-|---|---|
-| **① Prerequisites** | Shows what's installed ✅ and what's missing ❌ |
-| **② Configuration** | Enter your Tunnel ID + API Key (saved to Keychain) |
-| **③ Tunnel** | Start/Stop tunnel + live log viewer |
+The Setup UI provides:
+- **① Prerequisites** — Shows what's installed ✅ and what's missing ❌
+- **② Configuration** — Enter your Tunnel ID + API Key and click **🔍 Test Connection**
+- **③ Tunnel** — Start/Stop tunnel + live log viewer + copyable ChatGPT prompt
 
 ### 4. Daily Use
 
 After initial setup, just run:
 
 ```bash
-./start.sh
+./start.sh          # Normal start with doctor verification
+./start.sh --fast   # Fast start (<1s instant start)
 ```
 
 Or to change credentials:
@@ -119,7 +118,7 @@ Activate the project /path/to/your/project, then show the current configuration.
 nonny-Tunnel-for-mac/
 ├── setup.sh              # First-time setup
 ├── configure.sh          # Change credentials
-├── start.sh              # Start tunnel (daily use)
+├── start.sh              # Start tunnel (supports --fast)
 ├── profiles/
 │   └── nonny-tunnel.yaml # Tunnel profile template
 ├── config/
@@ -127,9 +126,9 @@ nonny-Tunnel-for-mac/
 │   └── team.env          # Tunnel ID (gitignored)
 ├── web-ui/
 │   ├── package.json
-│   ├── server.js         # Backend API
+│   ├── server.js         # Backend API with parallel checks & cache
 │   └── public/
-│       └── index.html    # Dashboard UI
+│       └── index.html    # Dashboard UI with Test Connection
 ├── .gitignore
 ├── README.md             # English docs
 ├── README.th.md          # Thai docs
@@ -146,53 +145,6 @@ nonny-Tunnel-for-mac/
 | **Tunnel ID** | Stored in `config/team.env` (gitignored) |
 | **Git Safety** | Credentials excluded by `.gitignore` |
 | **Key Type** | Always use **Runtime API key** — never Admin |
-
-### ⚠️ Important
-
-- Never use an OpenAI Admin API key for the tunnel daemon
-- Never share API keys in issues, screenshots, or commits
-- Stop `start.sh` (Ctrl+C) when the tunnel is not in use
-- Review tool calls before approving in ChatGPT
-- Only activate trusted local projects
-
----
-
-## Troubleshooting
-
-### MCP Server not found
-```bash
-# Install
-uv tool install -p 3.13 serena-agent
-serena init
-
-# Verify
-serena --help
-```
-
-### tunnel-client not downloaded
-```bash
-# Re-run setup
-./setup.sh
-```
-
-### Tunnel preflight failed
-Check the `doctor --explain` output in the start window. Common causes:
-- Invalid or expired Runtime API key
-- Tunnel ID associated with wrong organization/workspace
-- MCP Server command not working
-
-### Tunnel ready but not visible in ChatGPT
-1. Tunnel is associated with the correct ChatGPT workspace
-2. Your account has **Tunnels Read + Use** permission
-3. Developer mode is enabled in that workspace
-
----
-
-## Official References
-
-- [OpenAI Secure MCP Tunnel Guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
-- [tunnel-client Releases](https://github.com/openai/tunnel-client/releases)
-- [OpenAI Platform — Tunnels](https://platform.openai.com/settings/organization/tunnels)
 
 ---
 
