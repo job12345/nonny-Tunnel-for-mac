@@ -9,6 +9,9 @@ const fs = require("fs");
 const os = require("os");
 const util = require("util");
 
+// Ensure ~/.local/bin is in PATH for uv and serena tools
+process.env.PATH = `${path.join(os.homedir(), ".local", "bin")}:${process.env.PATH}`;
+
 const execPromise = util.promisify(exec);
 const app = express();
 const PORT = 3847;
@@ -25,7 +28,7 @@ let tunnelProcess = null;
 let tunnelLogs = [];
 const MAX_LOGS = 200;
 
-// Cache for system checks to ensure sub-millisecond API responses
+// Cache for system checks
 let systemCache = {
   data: null,
   timestamp: 0,
@@ -39,7 +42,10 @@ app.use(express.static(path.join(__dirname, "public")));
 
 async function runCmd(cmd, timeout = 5000) {
   try {
-    const { stdout } = await execPromise(cmd, { timeout });
+    const { stdout } = await execPromise(cmd, {
+      timeout,
+      env: process.env,
+    });
     return stdout.trim();
   } catch {
     return null;
@@ -49,7 +55,12 @@ async function runCmd(cmd, timeout = 5000) {
 function runCmdSync(cmd) {
   try {
     const { execSync } = require("child_process");
-    return execSync(cmd, { encoding: "utf8", timeout: 3000, stdio: ["pipe", "pipe", "pipe"] }).trim();
+    return execSync(cmd, {
+      encoding: "utf8",
+      timeout: 3000,
+      stdio: ["pipe", "pipe", "pipe"],
+      env: process.env,
+    }).trim();
   } catch {
     return null;
   }
@@ -106,13 +117,11 @@ function ensureProfile(tunnelId) {
 
 // ── API Routes ───────────────────────────────────────────────
 
-// GET /api/status — Parallel async check with intelligent caching
 app.get("/api/status", async (req, res) => {
   const now = Date.now();
   const forceRefresh = req.query.refresh === "1";
 
   if (!forceRefresh && systemCache.data && now - systemCache.timestamp < CACHE_TTL) {
-    // Dynamic parts updated on the fly
     const tunnelId = getTunnelId();
     const hasApiKey = !!getKeychainKey();
     const ready =
@@ -136,7 +145,6 @@ app.get("/api/status", async (req, res) => {
     });
   }
 
-  // Parallel asynchronous system checks
   const [curlPath, uvPath, mcpPath] = await Promise.all([
     runCmd("which curl"),
     runCmd("which uv"),
@@ -187,7 +195,6 @@ app.get("/api/status", async (req, res) => {
   res.json({ checks, ready, cached: false });
 });
 
-// POST /api/configure — Save Tunnel ID & Keychain API Key
 app.post("/api/configure", (req, res) => {
   const { tunnelId, apiKey } = req.body;
 
@@ -215,7 +222,6 @@ app.post("/api/configure", (req, res) => {
     }
   }
 
-  // Invalidate cache
   systemCache.timestamp = 0;
 
   res.json({
@@ -225,14 +231,12 @@ app.post("/api/configure", (req, res) => {
   });
 });
 
-// POST /api/configure/delete-key — Remove from Keychain
 app.post("/api/configure/delete-key", (req, res) => {
   deleteKeychainKey();
   systemCache.timestamp = 0;
   res.json({ success: true, hasApiKey: false });
 });
 
-// POST /api/test-connection — Verify credentials with doctor check
 app.post("/api/test-connection", async (req, res) => {
   const tcPath = findTunnelClient();
   if (!tcPath) {
@@ -270,7 +274,6 @@ app.post("/api/test-connection", async (req, res) => {
   }
 });
 
-// GET /api/tunnel/status — Combined status + live logs in single request
 app.get("/api/tunnel/status", (req, res) => {
   const running = tunnelProcess !== null && !tunnelProcess.killed;
   res.json({
@@ -280,7 +283,6 @@ app.get("/api/tunnel/status", (req, res) => {
   });
 });
 
-// POST /api/tunnel/start — Launch the daemon
 app.post("/api/tunnel/start", (req, res) => {
   if (tunnelProcess && !tunnelProcess.killed) {
     return res.status(409).json({ error: "Tunnel is already running." });
@@ -338,7 +340,6 @@ app.post("/api/tunnel/start", (req, res) => {
   res.json({ success: true, pid: tunnelProcess.pid });
 });
 
-// POST /api/tunnel/stop — Stop the daemon
 app.post("/api/tunnel/stop", (req, res) => {
   if (!tunnelProcess || tunnelProcess.killed) {
     return res.status(409).json({ error: "Tunnel is not running." });
@@ -353,7 +354,6 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Process cleanup
 const cleanup = () => {
   if (tunnelProcess && !tunnelProcess.killed) {
     tunnelProcess.kill("SIGTERM");
