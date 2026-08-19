@@ -1,0 +1,16 @@
+# Config
+config/team.env
+config/api-key.dpapi
+
+# Tunnel client binary (downloaded by setup.sh)
+tunnel-client/
+
+# Node
+node_modules/
+web-ui/node_modules/
+
+# OS
+.DS_Store
+
+# Environment
+.env
