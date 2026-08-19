@@ -260,16 +260,18 @@ app.post("/api/test-connection", async (req, res) => {
       }
     );
     const output = (stdout + "\n" + (stderr || "")).trim();
-    const passed = !output.toLowerCase().includes("fail") && !output.toLowerCase().includes("error");
+    const passed = output.includes("RESULT pass") || (!output.includes("RESULT fail") && !output.includes("FAILED_CHECKS"));
 
     res.json({
       success: passed,
       output,
     });
   } catch (err) {
+    const output = (err.stdout || err.stderr || err.message || "").trim();
+    const passed = output.includes("RESULT pass");
     res.json({
-      success: false,
-      output: err.stdout || err.stderr || err.message,
+      success: passed,
+      output,
     });
   }
 });

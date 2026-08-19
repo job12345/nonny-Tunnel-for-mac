@@ -12,8 +12,5 @@ log:
   format: json
 mcp:
   commands:
-    - command: serena
-      args:
-        - start-mcp-server
-        - --context
-        - chatgpt
+    - channel: main
+      command: "serena start-mcp-server --context chatgpt"
