@@ -8,7 +8,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 INSTALL_DIR="$ROOT/tunnel-client"
-REPO_API="https://api.github.com/repos/openai/tunnel-client/releases/latest"
+REPO_API="https://api.github.com/repos/openai/tunnel-client/releases"
 
 # ── Colors ───────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -54,12 +54,11 @@ check_prereqs() {
     fail "curl is required but not found."
   fi
 
-  # jq (optional but recommended)
-  if command -v jq &>/dev/null; then
-    info "jq found: $(command -v jq)"
+  # unzip
+  if command -v unzip &>/dev/null; then
+    info "unzip found"
   else
-    warn "jq not found. Install with: brew install jq"
-    warn "Continuing without jq (will use grep fallback)…"
+    fail "unzip is required."
   fi
 
   # uv
@@ -82,7 +81,7 @@ check_prereqs() {
     echo "    serena init"
   fi
 
-  # node (for Web UI)
+  # Node.js
   if command -v node &>/dev/null; then
     info "Node.js found: $(node --version)"
   else
@@ -108,86 +107,48 @@ download_tunnel_client() {
   local arch
   arch=$(detect_arch)
 
+  if [ -f "$INSTALL_DIR/tunnel-client" ]; then
+    info "tunnel-client is already installed at: $INSTALL_DIR/tunnel-client"
+    return
+  fi
+
   echo -e "${BOLD}Downloading tunnel-client for macOS ($arch)…${NC}"
   echo ""
 
-  # Get latest release info
-  local release_json
-  release_json=$(curl -sL "$REPO_API")
+  # Get release list
+  local releases_json
+  releases_json=$(curl -sL "$REPO_API")
 
-  local tag_name
-  if command -v jq &>/dev/null; then
-    tag_name=$(echo "$release_json" | jq -r '.tag_name')
-  else
-    tag_name=$(echo "$release_json" | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4)
-  fi
-
-  # Find the macOS asset
   local download_url
-
-  if command -v jq &>/dev/null; then
-    download_url=$(echo "$release_json" | jq -r ".assets[]? | select(.name | test(\"darwin_${arch}\\.tar\\.gz\$\")) | .browser_download_url" | head -1)
-  else
-    download_url=$(echo "$release_json" | grep -o "\"browser_download_url\":\"[^\"]*darwin_${arch}\.tar\.gz\"" | head -1 | cut -d'"' -f4)
-  fi
+  download_url=$(echo "$releases_json" | grep -o "\"browser_download_url\":\"[^\"]*darwin-${arch}\.zip\"" | head -1 | cut -d'"' -f4)
 
   if [ -z "$download_url" ]; then
-    fail "Could not find macOS $arch release in $tag_name. Check https://github.com/openai/tunnel-client/releases"
+    download_url="https://github.com/openai/tunnel-client/releases/download/v0.0.11/tunnel-client-v0.0.11-darwin-${arch}.zip"
   fi
 
-  echo "  Release : $tag_name"
-  echo "  Asset   : $(basename "$download_url")"
-  echo "  URL     : $download_url"
+  echo "  URL: $download_url"
   echo ""
 
-  # Download
   mkdir -p "$INSTALL_DIR"
-  local tmp_tar="$INSTALL_DIR/tunnel-client.tar.gz"
-  curl -L --progress-bar -o "$tmp_tar" "$download_url"
+  local tmp_archive="$INSTALL_DIR/tunnel-client.zip"
+  curl -L --progress-bar -o "$tmp_archive" "$download_url"
 
-  # Verify checksum if available
-  local checksum_url="${download_url}.sha256"
-  local tmp_checksum="$INSTALL_DIR/checksum.sha256"
-  if curl -sL -o "$tmp_checksum" "$checksum_url" 2>/dev/null && [ -s "$tmp_checksum" ]; then
-    echo -e "${BOLD}Verifying SHA-256 checksum…${NC}"
-    local expected_hash
-    expected_hash=$(awk '{print $1}' "$tmp_checksum")
-    local actual_hash
-    actual_hash=$(shasum -a 256 "$tmp_tar" | awk '{print $1}')
-    if [ "$expected_hash" = "$actual_hash" ]; then
-      info "Checksum verified ✓"
-    else
-      warn "Checksum mismatch!"
-      echo "  Expected: $expected_hash"
-      echo "  Actual:   $actual_hash"
-      fail "Downloaded file may be corrupted. Please try again."
-    fi
-    rm -f "$tmp_checksum"
-  else
-    warn "No checksum file available — skipping verification."
-    rm -f "$tmp_checksum"
-  fi
-
-  # Extract
   echo ""
   echo -e "${BOLD}Extracting…${NC}"
-  tar -xzf "$tmp_tar" -C "$INSTALL_DIR"
-  rm -f "$tmp_tar"
+  unzip -q -o "$tmp_archive" -d "$INSTALL_DIR"
+  rm -f "$tmp_archive"
 
-  # Make executable
   chmod +x "$INSTALL_DIR/tunnel-client" 2>/dev/null || true
 
   if [ -f "$INSTALL_DIR/tunnel-client" ]; then
-    info "tunnel-client installed at: $INSTALL_DIR/tunnel-client"
-    local tc_version
-    tc_version=$("$INSTALL_DIR/tunnel-client" --version 2>&1 || echo "unknown")
-    info "Version: $tc_version"
+    info "tunnel-client installed successfully!"
   else
     local found
     found=$(find "$INSTALL_DIR" -name "tunnel-client" -type f | head -1)
     if [ -n "$found" ]; then
-      chmod +x "$found"
-      info "tunnel-client installed at: $found"
+      mv "$found" "$INSTALL_DIR/tunnel-client"
+      chmod +x "$INSTALL_DIR/tunnel-client"
+      info "tunnel-client installed successfully!"
     else
       fail "tunnel-client binary not found after extraction."
     fi
@@ -211,7 +172,7 @@ launch_web_ui() {
 
   echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
   echo -e "${CYAN}│                                              │${NC}"
-  echo -e "${CYAN}│   Nonny Tunnel Setup UI is running at:       │${NC}"
+  echo -e "${CYAN}│   ⚡ Nonny Tunnel Dashboard is running at:   │${NC}"
   echo -e "${CYAN}│   ${BOLD}http://localhost:3847${NC}${CYAN}                      │${NC}"
   echo -e "${CYAN}│                                              │${NC}"
   echo -e "${CYAN}│   Configure your Tunnel ID and API Key       │${NC}"
@@ -220,9 +181,7 @@ launch_web_ui() {
   echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
   echo ""
 
-  # Open browser
   open "http://localhost:3847" 2>/dev/null || true
-
   node server.js
 }
 
