@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nonny Swarm — Multi-Agent AI Team</title>
+  <meta name="description" content="Autonomous Multi-Agent AI Team Orchestrator with Live Kanban & Inter-Agent Chat by mr.j">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #06060c;
+      --bg-secondary: #0d0d18;
+      --bg-card: rgba(15, 15, 27, 0.75);
+      --bg-card-hover: rgba(22, 22, 38, 0.85);
+      --bg-input: rgba(10, 10, 20, 0.9);
+      --border: rgba(255, 255, 255, 0.07);
+      --border-focus: rgba(168, 85, 247, 0.6);
+      --text-primary: #f3f3f8;
+      --text-secondary: #9090a8;
+      --text-muted: #5a5a72;
+      --accent: #a855f7;
+      --accent-secondary: #6366f1;
+      --accent-glow: rgba(168, 85, 247, 0.3);
+      --worker-1: #a855f7;
+      --worker-2: #3b82f6;
+      --worker-3: #10b981;
+      --worker-4: #f59e0b;
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      --error: #ef4444;
+      --error-bg: rgba(239, 68, 68, 0.12);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Ambient Background ────────────────────────────── */
+    .bg-effect {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-effect::before {
+      content: '';
+      position: absolute;
+      width: 800px; height: 800px;
+      top: -300px; right: -200px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
+      animation: floatA 22s ease-in-out infinite;
+    }
+    .bg-effect::after {
+      content: '';
+      position: absolute;
+      width: 700px; height: 700px;
+      bottom: -200px; left: -150px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+      animation: floatA 28s ease-in-out infinite reverse;
+    }
+    @keyframes floatA {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(40px, -30px) scale(1.08); }
+    }
+
+    /* ── Top Navigation Bar ────────────────────────────── */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8, 8, 16, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+    .nav-brand .icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .nav-brand .title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #f0f0f5, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-links {
+      display: flex;
+      gap: 8px;
+    }
+    .nav-link {
+      padding: 8px 16px;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+    .nav-link.active {
+      color: var(--text-primary);
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    /* ── App Container ─────────────────────────────────── */
+    .app-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 28px 64px;
+    }
+
+    /* ── Mission Control Card ──────────────────────────── */
+    .mission-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+    .mission-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .mission-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-badge.IDLE { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+    .status-badge.PLANNING { background: var(--warning-bg); color: var(--warning); animation: pulse 1.5s infinite; }
+    .status-badge.RUNNING { background: var(--success-bg); color: var(--success); box-shadow: 0 0 16px rgba(16,185,129,0.3); }
+    .status-badge.PAUSED { background: var(--warning-bg); color: var(--warning); }
+    .status-badge.COMPLETED { background: rgba(168,85,247,0.15); color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+    .status-badge.ERROR { background: var(--error-bg); color: var(--error); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: 2fr 1.2fr 1fr 1.2fr auto;
+      gap: 14px;
+      align-items: flex-end;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .form-select option { background: #0c0c16; color: var(--text-primary); }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+      color: white;
+      box-shadow: 0 4px 18px var(--accent-glow);
+    }
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 26px var(--accent-glow);
+    }
+    .btn-danger { background: linear-gradient(135deg, var(--error), #dc2626); color: white; }
+    .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+    .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.04); color: var(--text-primary); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Progress Bar ──────────────────────────────────── */
+    .progress-bar-container {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      border-radius: 99px;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* ── Main Split Grid (Kanban + Live Chat) ──────────── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* ── Kanban Board ──────────────────────────────────── */
+    .kanban-section {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .kanban-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      flex: 1;
+      min-height: 480px;
+    }
+    .kanban-col {
+      background: rgba(8, 8, 16, 0.6);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .col-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .col-header.todo { color: var(--text-secondary); }
+    .col-header.in_progress { color: var(--accent); }
+    .col-header.review { color: var(--warning); }
+    .col-header.done { color: var(--success); }
+    .col-count {
+      background: rgba(255,255,255,0.06);
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-size: 11px;
+    }
+
+    .col-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      overflow-y: auto;
+      max-height: 520px;
+    }
+    .task-card {
+      background: var(--bg-card-hover);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      transition: all 0.2s;
+      animation: fadeIn 0.3s ease;
+      cursor: pointer;
+    }
+    .task-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(168,85,247,0.4);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .task-card.active-task {
+      border-color: var(--accent);
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .card-id {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+    .worker-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 10px;
+    }
+
+    /* ── Live Inter-Agent Chat Feed ────────────────────── */
+    .chat-section {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      height: 600px;
+    }
+    .chat-feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .chat-feed::-webkit-scrollbar { width: 6px; }
+    .chat-feed::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+    .chat-bubble {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-width: 92%;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      line-height: 1.6;
+      animation: fadeIn 0.25s ease;
+    }
+    .chat-bubble.manager {
+      align-self: flex-start;
+      background: rgba(168, 85, 247, 0.12);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      color: #f3e8ff;
+    }
+    .chat-bubble.worker {
+      align-self: flex-end;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #eff6ff;
+    }
+    .chat-bubble.system {
+      align-self: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+      padding: 8px 16px;
+      border-radius: 99px;
+      text-align: center;
+    }
+    .bubble-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 4px;
+      margin-bottom: 2px;
+    }
+    .bubble-meta .sender {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .bubble-content {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ── Bottom Grid (Worker Fleet + Logs) ─────────────── */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .fleet-card, .log-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+    }
+    .worker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .worker-item {
+      background: rgba(8, 8, 16, 0.6);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .worker-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .worker-name { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .worker-role { font-size: 11px; color: var(--text-muted); }
+    .worker-status-chip {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 99px;
+    }
+    .worker-status-chip.idle { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+    .worker-status-chip.working { background: var(--accent-glow); color: var(--accent); animation: pulse 1.5s infinite; }
+    .worker-status-chip.reviewing { background: var(--warning-bg); color: var(--warning); }
+    .worker-status-chip.done { background: var(--success-bg); color: var(--success); }
+
+    .terminal-logs {
+      background: #040408;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 14px;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 1024px) {
+      .main-grid, .bottom-grid { grid-template-columns: 1fr; }
+      .control-grid { grid-template-columns: 1fr 1fr; }
+      .kanban-board { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .control-grid { grid-template-columns: 1fr; }
+      .kanban-board { grid-template-columns: 1fr; }
+      .app-container { padding: 16px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-effect"></div>
+
+  <!-- Top Nav -->
+  <header class="top-nav">
+    <a href="/swarm" class="nav-brand">
+      <div class="icon">⚡</div>
+      <div>
+        <div class="title">Nonny Swarm</div>
+      </div>
+    </a>
+    <nav class="nav-links">
+      <a href="/" class="nav-link">🔐 Nonny Tunnel</a>
+      <a href="/swarm" class="nav-link active">👥 Swarm Dashboard</a>
+    </nav>
+  </header>
+
+  <div class="app-container">
+    <!-- Mission Control Card -->
+    <section class="mission-card">
+      <div class="mission-header">
+        <div class="mission-title">
+          <span>🎯 Mission Control</span>
+          <span class="status-badge IDLE" id="mission-status-badge">● Idle</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Autonomous AI Team Orchestration by <strong>mr.j</strong>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <div class="form-group">
+          <label class="form-label" for="input-goal">Project Goal / Objective</label>
+          <input type="text" id="input-goal" class="form-input" placeholder="e.g. Build a Modern E-Commerce Landing Page with Cart..." value="Build a Fullstack Kanban Board with Node.js & Vanilla CSS">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-project-path">Workspace Path</label>
+          <input type="text" id="input-project-path" class="form-input" placeholder="/Users/masterjob/my-project" value="/Users/masterjob/my-project">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-workers">Team Size</label>
+          <select id="select-workers" class="form-select">
+            <option value="2" selected>2 Workers (Frontend + Backend)</option>
+            <option value="3">3 Workers (+ QA Tester)</option>
+            <option value="1">1 Worker (Fullstack Solo)</option>
+            <option value="4">4 Workers (+ Database)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="select-manager">Manager AI</label>
+          <select id="select-manager" class="form-select">
+            <option value="gemini" selected>Google Gemini (Free Tier)</option>
+            <option value="openai">OpenAI (GPT-4o)</option>
+            <option value="ollama">Ollama (Local AI)</option>
+            <option value="heuristic">Smart Heuristic Planner</option>
+          </select>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-primary" id="btn-start-mission" onclick="startMission()">🚀 Launch Team</button>
+          <button class="btn btn-ghost" id="btn-pause-mission" onclick="togglePause()" disabled>⏸</button>
+          <button class="btn btn-danger" id="btn-stop-mission" onclick="stopMission()" disabled>■ Stop</button>
+        </div>
+      </div>
+
+      <!-- Project Progress -->
+      <div class="progress-bar-container">
+        <div class="progress-info">
+          <span id="progress-summary">Ready to launch project mission...</span>
+          <span id="progress-percent" style="font-weight: 700; color: var(--accent);">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Grid: Kanban Board + Inter-Agent Live Chat -->
+    <div class="main-grid">
+      <!-- Left: Kanban Board -->
+      <section class="kanban-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span>📌 Live Kanban Tickets</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);" id="kanban-task-count">0 tasks</div>
+        </div>
+
+        <div class="kanban-board">
+          <!-- Backlog / Todo -->
+          <div class="kanban-col">
+            <div class="col-header todo">
+              <span>Backlog</span>
+              <span class="col-count" id="count-todo">0</span>
+            </div>
+            <div class="col-cards" id="cards-todo">
+              <div style="font-size:12px; color:var(--text-muted); text-align:center; padding:20px 0;">No tasks yet</div>
+            </div>
+          </div>
+
+          <!-- In Progress -->
+          <div class="kanban-col">
+            <div class="col-header in_progress">
+              <span>Coding</span>
+              <span class="col-count" id="count-in_progress">0</span>
+            </div>
+            <div class="col-cards" id="cards-in_progress"></div>
+          </div>
+
+          <!-- Review -->
+          <div class="kanban-col">
+            <div class="col-header review">
+              <span>Review</span>
+              <span class="col-count" id="count-review">0</span>
+            </div>
+            <div class="col-cards" id="cards-review"></div>
+          </div>
+
+          <!-- Done -->
+          <div class="kanban-col">
+            <div class="col-header done">
+              <span>Completed</span>
+              <span class="col-count" id="count-done">0</span>
+            </div>
+            <div class="col-cards" id="cards-done"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Live Inter-Agent Chat Feed -->
+      <section class="chat-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span>💬 Live Inter-Agent Chat</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);">Manager ⟷ Worker Dialogue</div>
+        </div>
+
+        <div class="chat-feed" id="chat-feed">
+          <div class="chat-bubble system">
+            <span>Waiting for mission to start... Inter-agent chat will stream here live.</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Bottom Grid: Worker Fleet + Logs -->
+    <div class="bottom-grid">
+      <!-- Worker Fleet Grid -->
+      <section class="fleet-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span>🤖 Worker Fleet Monitor</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);">ChatGPT Web Workers</div>
+        </div>
+        <div class="worker-grid" id="worker-grid">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Live Terminal Logs -->
+      <section class="log-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span>📜 Execution Stream</span>
+          </div>
+          <button class="btn btn-ghost" style="padding:4px 10px; font-size:11px;" onclick="clearLogs()">Clear</button>
+        </div>
+        <div class="terminal-logs" id="terminal-logs">
+          [System] Nonny Swarm engine initialized. Ready to orchestrate.
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="/swarm.js"></script>
+</body>
+</html>

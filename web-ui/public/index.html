@@ -478,6 +478,18 @@
 <body>
   <div class="bg-effect"></div>
 
+  <!-- Top Navigation Bar -->
+  <header style="position:sticky; top:0; z-index:100; background:rgba(8,8,16,0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-bottom:1px solid var(--border); padding:14px 28px; display:flex; align-items:center; justify-content:space-between;">
+    <a href="/" style="display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--text-primary);">
+      <div style="width:36px; height:36px; background:linear-gradient(135deg, var(--accent), var(--accent-secondary)); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 0 20px var(--accent-glow);">⚡</div>
+      <div style="font-size:18px; font-weight:800; letter-spacing:-0.5px; background:linear-gradient(135deg, #f0f0f5, var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Nonny Tunnel</div>
+    </a>
+    <nav style="display:flex; gap:8px;">
+      <a href="/" style="padding:8px 16px; border-radius:8px; color:var(--text-primary); background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.3); text-decoration:none; font-size:13px; font-weight:500; display:inline-flex; align-items:center; gap:6px;">🔐 Tunnel Config</a>
+      <a href="/swarm" style="padding:8px 16px; border-radius:8px; color:var(--text-secondary); text-decoration:none; font-size:13px; font-weight:500; display:inline-flex; align-items:center; gap:6px; transition:all 0.2s;">👥 Swarm Team (New!)</a>
+    </nav>
+  </header>
+
   <div class="app">
     <header class="header">
       <div class="header-logo">

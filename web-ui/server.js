@@ -1,5 +1,5 @@
 /**
- * Nonny Tunnel for Mac — Optimized Web UI Backend
+ * Nonny Tunnel & Nonny Swarm Web Backend
  * Developed by mr.j
  */
 const express = require("express");
@@ -23,7 +23,11 @@ const PROFILE_TEMPLATE = path.join(ROOT, "profiles", "nonny-tunnel.yaml");
 const KEYCHAIN_ACCOUNT = "nonny-tunnel";
 const KEYCHAIN_SERVICE = "openai-runtime-api-key";
 
-// Tunnel state
+// Nonny Swarm imports
+const swarmState = require("../swarm/state");
+const swarmOrchestrator = require("../swarm/orchestrator");
+
+// Tunnel daemon state
 let tunnelProcess = null;
 let tunnelLogs = [];
 const MAX_LOGS = 200;
@@ -33,7 +37,7 @@ let systemCache = {
   data: null,
   timestamp: 0,
 };
-const CACHE_TTL = 30000; // 30 seconds
+const CACHE_TTL = 30000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -42,10 +46,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 async function runCmd(cmd, timeout = 5000) {
   try {
-    const { stdout } = await execPromise(cmd, {
-      timeout,
-      env: process.env,
-    });
+    const { stdout } = await execPromise(cmd, { timeout, env: process.env });
     return stdout.trim();
   } catch {
     return null;
@@ -115,7 +116,7 @@ function ensureProfile(tunnelId) {
   return profilePath;
 }
 
-// ── API Routes ───────────────────────────────────────────────
+// ── Tunnel API Routes ────────────────────────────────────────
 
 app.get("/api/status", async (req, res) => {
   const now = Date.now();
@@ -134,11 +135,7 @@ app.get("/api/status", async (req, res) => {
       ...systemCache.data,
       checks: {
         ...systemCache.data.checks,
-        credentials: {
-          tunnelId,
-          hasTunnelId: !!tunnelId,
-          hasApiKey,
-        },
+        credentials: { tunnelId, hasTunnelId: !!tunnelId, hasApiKey },
       },
       ready,
       cached: true,
@@ -169,16 +166,8 @@ app.get("/api/status", async (req, res) => {
     uv: { installed: !!uvPath, path: uvPath, version: uvVer },
     mcpServer: { installed: !!mcpPath, path: mcpPath, version: mcpVer },
     tunnelClient: { installed: !!tcPath, path: tcPath, version: tcVer },
-    credentials: {
-      tunnelId,
-      hasTunnelId: !!tunnelId,
-      hasApiKey,
-    },
-    system: {
-      arch: os.arch(),
-      platform: os.platform(),
-      hostname: os.hostname(),
-    },
+    credentials: { tunnelId, hasTunnelId: !!tunnelId, hasApiKey },
+    system: { arch: os.arch(), platform: os.platform(), hostname: os.hostname() },
   };
 
   const ready =
@@ -187,48 +176,32 @@ app.get("/api/status", async (req, res) => {
     checks.credentials.hasTunnelId &&
     checks.credentials.hasApiKey;
 
-  systemCache = {
-    data: { checks, ready },
-    timestamp: now,
-  };
-
+  systemCache = { data: { checks, ready }, timestamp: now };
   res.json({ checks, ready, cached: false });
 });
 
 app.post("/api/configure", (req, res) => {
   const { tunnelId, apiKey } = req.body;
-
   if (tunnelId) {
     if (!/^tunnel_[0-9a-f]{32}$/.test(tunnelId)) {
-      return res.status(400).json({
-        error: "Invalid Tunnel ID format. Expected tunnel_ followed by 32 lowercase hex characters.",
-      });
+      return res.status(400).json({ error: "Invalid Tunnel ID format." });
     }
     setTunnelId(tunnelId);
   }
-
   if (apiKey) {
     if (!apiKey.startsWith("sk-")) {
-      return res.status(400).json({
-        error: 'Invalid API Key format. Expected key starting with "sk-".',
-      });
+      return res.status(400).json({ error: "Invalid API Key format." });
     }
     const ok = setKeychainKey(apiKey);
     if (!ok) {
       deleteKeychainKey();
       if (!setKeychainKey(apiKey)) {
-        return res.status(500).json({ error: "Failed to save API key to macOS Keychain." });
+        return res.status(500).json({ error: "Failed to save API key to Keychain." });
       }
     }
   }
-
   systemCache.timestamp = 0;
-
-  res.json({
-    success: true,
-    tunnelId: tunnelId || getTunnelId(),
-    hasApiKey: !!getKeychainKey(),
-  });
+  res.json({ success: true, tunnelId: tunnelId || getTunnelId(), hasApiKey: !!getKeychainKey() });
 });
 
 app.post("/api/configure/delete-key", (req, res) => {
@@ -239,61 +212,39 @@ app.post("/api/configure/delete-key", (req, res) => {
 
 app.post("/api/test-connection", async (req, res) => {
   const tcPath = findTunnelClient();
-  if (!tcPath) {
-    return res.status(400).json({ error: "tunnel-client is not installed yet. Run setup.sh first." });
-  }
+  if (!tcPath) return res.status(400).json({ error: "tunnel-client is not installed." });
 
   const tunnelId = req.body.tunnelId || getTunnelId();
   const apiKey = req.body.apiKey || getKeychainKey();
-
   if (!tunnelId) return res.status(400).json({ error: "Tunnel ID is missing." });
   if (!apiKey) return res.status(400).json({ error: "API Key is missing." });
 
   ensureProfile(tunnelId);
 
   try {
-    const { stdout, stderr } = await execPromise(
-      `"${tcPath}" doctor --profile nonny-tunnel --explain`,
-      {
-        env: { ...process.env, CONTROL_PLANE_API_KEY: apiKey },
-        timeout: 10000,
-      }
-    );
+    const { stdout, stderr } = await execPromise(`"${tcPath}" doctor --profile nonny-tunnel --explain`, {
+      env: { ...process.env, CONTROL_PLANE_API_KEY: apiKey },
+      timeout: 10000,
+    });
     const output = (stdout + "\n" + (stderr || "")).trim();
     const passed = output.includes("RESULT pass") || (!output.includes("RESULT fail") && !output.includes("FAILED_CHECKS"));
-
-    res.json({
-      success: passed,
-      output,
-    });
+    res.json({ success: passed, output });
   } catch (err) {
     const output = (err.stdout || err.stderr || err.message || "").trim();
-    const passed = output.includes("RESULT pass");
-    res.json({
-      success: passed,
-      output,
-    });
+    res.json({ success: output.includes("RESULT pass"), output });
   }
 });
 
 app.get("/api/tunnel/status", (req, res) => {
   const running = tunnelProcess !== null && !tunnelProcess.killed;
-  res.json({
-    running,
-    pid: running ? tunnelProcess.pid : null,
-    logs: tunnelLogs.slice(-60),
-  });
+  res.json({ running, pid: running ? tunnelProcess.pid : null, logs: tunnelLogs.slice(-60) });
 });
 
 app.post("/api/tunnel/start", (req, res) => {
-  if (tunnelProcess && !tunnelProcess.killed) {
-    return res.status(409).json({ error: "Tunnel is already running." });
-  }
+  if (tunnelProcess && !tunnelProcess.killed) return res.status(409).json({ error: "Tunnel is already running." });
 
   const tcPath = findTunnelClient();
-  if (!tcPath) {
-    return res.status(400).json({ error: "tunnel-client not installed. Run ./setup.sh first." });
-  }
+  if (!tcPath) return res.status(400).json({ error: "tunnel-client not installed." });
 
   const tunnelId = getTunnelId();
   if (!tunnelId) return res.status(400).json({ error: "Tunnel ID not configured." });
@@ -307,12 +258,7 @@ app.post("/api/tunnel/start", (req, res) => {
   tunnelLogs.push(`[${new Date().toLocaleTimeString()}] Starting Nonny Tunnel daemon...`);
 
   const env = { ...process.env, CONTROL_PLANE_API_KEY: apiKey };
-
-  // Use 'run' command for tunnel-client
-  tunnelProcess = spawn(tcPath, ["run", "--profile", "nonny-tunnel"], {
-    env,
-    stdio: ["pipe", "pipe", "pipe"],
-  });
+  tunnelProcess = spawn(tcPath, ["run", "--profile", "nonny-tunnel"], { env, stdio: ["pipe", "pipe", "pipe"] });
 
   tunnelProcess.stdout.on("data", (data) => {
     const lines = data.toString().split("\n").filter(Boolean);
@@ -344,13 +290,87 @@ app.post("/api/tunnel/start", (req, res) => {
 });
 
 app.post("/api/tunnel/stop", (req, res) => {
-  if (!tunnelProcess || tunnelProcess.killed) {
-    return res.status(409).json({ error: "Tunnel is not running." });
-  }
-
+  if (!tunnelProcess || tunnelProcess.killed) return res.status(409).json({ error: "Tunnel is not running." });
   tunnelProcess.kill("SIGTERM");
   tunnelLogs.push(`[${new Date().toLocaleTimeString()}] Stopping tunnel...`);
   res.json({ success: true });
+});
+
+// ── Nonny Swarm Multi-Agent API Routes ────────────────────────
+
+// SSE Event Stream for live real-time dashboard updates
+app.get("/api/swarm/events", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  // Send initial state snapshot
+  res.write(`data: ${JSON.stringify({ type: "init", payload: swarmState.getSnapshot() })}\n\n`);
+
+  const sendEvent = (eventType, data) => {
+    res.write(`data: ${JSON.stringify({ type: eventType, payload: data })}\n\n`);
+  };
+
+  const onStateChanged = (snapshot) => sendEvent("state", snapshot);
+  const onChatMessage = (msg) => sendEvent("chat", msg);
+  const onTaskUpdated = (task) => sendEvent("task", task);
+  const onLogAdded = (log) => sendEvent("log", log);
+  const onWorkerUpdated = (worker) => sendEvent("worker", worker);
+
+  swarmState.on("state_changed", onStateChanged);
+  swarmState.on("chat_message", onChatMessage);
+  swarmState.on("task_updated", onTaskUpdated);
+  swarmState.on("log_added", onLogAdded);
+  swarmState.on("worker_updated", onWorkerUpdated);
+
+  req.on("close", () => {
+    swarmState.off("state_changed", onStateChanged);
+    swarmState.off("chat_message", onChatMessage);
+    swarmState.off("task_updated", onTaskUpdated);
+    swarmState.off("log_added", onLogAdded);
+    swarmState.off("worker_updated", onWorkerUpdated);
+  });
+});
+
+app.get("/api/swarm/state", (req, res) => {
+  res.json(swarmState.getSnapshot());
+});
+
+app.post("/api/swarm/start", async (req, res) => {
+  const { goal, projectPath, workerCount, managerProvider, managerApiKey, managerModel } = req.body;
+  if (!goal) return res.status(400).json({ error: "Goal is required." });
+
+  if (swarmOrchestrator.isRunning) {
+    return res.status(409).json({ error: "A mission is already running." });
+  }
+
+  // Start mission asynchronously in background
+  swarmOrchestrator.startMission({
+    goal,
+    projectPath: projectPath || "/Users/masterjob/my-project",
+    workerCount: parseInt(workerCount, 10) || 2,
+    managerProvider: managerProvider || "gemini",
+    managerApiKey: managerApiKey || "",
+    managerModel: managerModel || "gemini-2.0-flash",
+  });
+
+  res.json({ success: true, message: "Swarm mission started." });
+});
+
+app.post("/api/swarm/stop", async (req, res) => {
+  await swarmOrchestrator.stopMission();
+  res.json({ success: true });
+});
+
+app.post("/api/swarm/pause", (req, res) => {
+  const isPaused = swarmOrchestrator.togglePause();
+  res.json({ success: true, isPaused });
+});
+
+// Serve swarm dashboard
+app.get("/swarm", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "swarm.html"));
 });
 
 app.get("*", (req, res) => {
@@ -358,14 +378,13 @@ app.get("*", (req, res) => {
 });
 
 const cleanup = () => {
-  if (tunnelProcess && !tunnelProcess.killed) {
-    tunnelProcess.kill("SIGTERM");
-  }
+  if (tunnelProcess && !tunnelProcess.killed) tunnelProcess.kill("SIGTERM");
+  if (swarmOrchestrator) swarmOrchestrator.stopMission();
   process.exit(0);
 };
 process.on("SIGINT", cleanup);
 process.on("SIGTERM", cleanup);
 
 app.listen(PORT, () => {
-  console.log(`\n  ⚡ Nonny Tunnel Web UI: http://localhost:${PORT}\n`);
+  console.log(`\n  ⚡ Nonny Tunnel & Swarm Dashboard: http://localhost:${PORT}\n`);
 });

@@ -1,6 +1,6 @@
-# ⚡ Nonny Tunnel for Mac
+# ⚡ Nonny Tunnel & Nonny Swarm for Mac
 
-เชื่อมต่อ **ChatGPT** กับ **โฟลเดอร์โปรเจกต์ในเครื่อง Mac (Local Workspace)** ได้อย่างปลอดภัย โดยไม่ต้องเปิดพอร์ตหรือเปิด MCP Server สู่สาธารณะ
+เชื่อมต่อ **ChatGPT** กับ **โฟลเดอร์โปรเจกต์ในเครื่อง Mac** ได้อย่างปลอดภัย และสั่งงาน **ทีม Multi-Agent AI (ผู้จัดการ + พนักงาน)** พร้อมหน้าแดชบอร์ด Kanban และ Live Chat ดูการทำงานร่วมกันแบบเรียลไทม์
 
 **พัฒนาโดย: mr.j**
 
@@ -8,147 +8,74 @@
 
 ---
 
-## Nonny Tunnel คืออะไร?
+## 🌟 2 ระบบสุดทรงพลังในโปรเจกต์เดียว
 
-Nonny Tunnel เป็นเครื่องมือเชื่อมต่อ ChatGPT เข้ากับไฟล์หรือโปรเจกต์ในเครื่อง Mac ของคุณผ่าน **OpenAI Secure MCP Tunnel** ทำให้ ChatGPT สามารถอ่านโค้ด แก้ไขไฟล์ จัดการโปรเจกต์ในเครื่องได้โดยตรงและปลอดภัยผ่านช่องทางเข้ารหัส
+### 1. 🔐 Nonny Tunnel (Secure MCP Tunnel)
+สะพานเชื่อมต่อ ChatGPT กับเครื่อง Mac ผ่าน **OpenAI Secure MCP Tunnel** โดยไม่ต้องเปิดพอร์ตหรือเปิดเซิร์ฟเวอร์สู่สาธารณะ
+- เข้ารหัส API Key ใน **macOS Keychain** ปลอดภัย 100%
+- หน้าเว็บแดชบอร์ดจัดการ Tunnel: `http://localhost:3847`
+- โหมดเปิดเร็วพิเศษ: `./start.sh --fast` (<1 วินาที)
 
-```
-ChatGPT (Cloud)
-    │
-    ▼
-OpenAI Secure MCP Tunnel (Cloud)
-    │  เข้ารหัสความปลอดภัย
-    ▼
-tunnel-client (ในเครื่อง Mac ของคุณ)
-    │  stdio
-    ▼
-MCP Server (ทำงานในเครื่อง)
-    │
-    ▼
-โฟลเดอร์โปรเจกต์ของคุณ
-```
-
-### จุดเด่น
-- 🍎 **ออกแบบมาเพื่อ macOS โดยเฉพาะ** — รองรับทั้ง Apple Silicon (M1/M2/M3/M4) และชิป Intel
-- 🔐 **ปลอดภัยสูงสุด** — เก็บ API Key ใน **macOS Keychain** (ไม่บันทึกเป็น Plaintext)
-- 🖥 **Web Setup UI ประสิทธิภาพสูง** — มีฟังก์ชัน **🔍 Test Connection** ตรวจสอบ Key ได้ทันทีก่อนเริ่ม
-- ⚡ **Ultra Fast Start** — เปิด Tunnel ได้ทันทีในเวลา <1 วินาที ด้วยคำสั่ง `./start.sh --fast`
-- 📦 **ติดตั้งง่ายในคำสั่งเดียว** — ดาวน์โหลด `tunnel-client` เวอร์ชันล่าสุดอัตโนมัติพร้อมตรวจ Checksum
-- 📋 **Live Logs & 1-Click Copy** — ดูการทำงานแบบเรียลไทม์ และมีปุ่มก็อปปี้ Prompt ไปสั่ง ChatGPT ได้สะดวก
-- 🚀 **ใช้งานง่ายทุกวัน** — รัน `./start.sh` พร้อมทำงานทันที
+### 2. 👥 Nonny Swarm (ระบบทีม AI อัจฉริยะแบบอัตโนมัติ)
+เปลี่ยน AI ให้กลายเป็นทีมพัฒนาซอฟต์แวร์เต็มรูปแบบ:
+- 🧠 **AI Manager (ผู้จัดการ)**: วางแผนระบบ แตก Task ย่อยลง Kanban Board และคอยตรวจโค้ด
+- 🤖 **ChatGPT Web Workers (พนักงาน)**: แบ่งหน้าที่เขียน Frontend, Backend, Database, และรันเทสต์ผ่าน Nonny Tunnel
+- 📊 **หน้า Swarm Dashboard สุดพรีเมียม (`http://localhost:3847/swarm`)**:
+  - **📌 Live Kanban Board**: แตกการ์ดและขยับสถานะงานอัตโนมัติ (Backlog ➔ Coding ➔ Review ➔ Completed)
+  - **💬 Inter-Agent Live Chat Feed**: หน้าต่างแชทดูบทสนทนาจริง ว่าผู้จัดการสั่งอะไร พนักงานตอบอะไร และตรวจงานอย่างไร
+  - **🤖 Worker Fleet Monitor**: มอนิเตอร์สถานะพนักงานแต่ละตัวแบบ Real-time
 
 ---
 
-## สิ่งที่ต้องเตรียมก่อนใช้งาน (Requirements)
+## สถาปัตยกรรมระบบ (Architecture)
 
-| รายการ | วิธีติดตั้ง / เตรียม |
-|---|---|
-| macOS 10.15+ | — |
-| Node.js 18+ | `brew install node` หรือ [nodejs.org](https://nodejs.org) |
-| uv | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| MCP Server | `uv tool install -p 3.13 serena-agent && serena init` |
-| OpenAI Tunnel ID | สร้างได้ที่ [OpenAI Platform Tunnels](https://platform.openai.com/settings/organization/tunnels) |
-| OpenAI Runtime API Key | สร้าง Key ที่มีสิทธิ์ **Tunnels Read + Use** |
-| ChatGPT Developer Mode | เปิดใช้งานใน Workspace ของคุณ |
+```
+                            [ 👤 สั่งโจทย์ใหญ่ใน Dashboard ]
+                                          │
+                                          ▼
+       ┌─────────────────────────────────────────────────────────────┐
+       │  🧠 Manager Engine (Gemini / OpenAI / Ollama / Smart Plan)  │
+       │  - แตกโจทย์เป็น Tickets ลง Kanban                           │
+       │  - มอบหมายงานให้ Worker แต่ละตัว                             │
+       │  - รีวิวโค้ดและประเมินผลงาน                                  │
+       └──────────────┬───────────────────────────────┬──────────────┘
+                      │ Real-time Event Stream (SSE)  │
+                      ▼                               ▼
+       ┌──────────────────────────────┐┌──────────────────────────────┐
+       │ 🤖 Worker 1 (Frontend & UI)  ││ 🤖 Worker 2 (Backend & Logic)│
+       │ (ChatGPT Web + Nonny Tunnel) ││ (ChatGPT Web + Nonny Tunnel) │
+       │ - เขียน UI Components & CSS  ││ - เขียน API & Database Schema│
+       └──────────────────────────────┘└──────────────────────────────┘
+```
 
 ---
 
 ## เริ่มต้นใช้งาน (Quick Start)
 
-### 1. โคลนโปรเจกต์
+### 1. ติดตั้ง
 
 ```bash
 git clone https://github.com/job12345/nonny-Tunnel-for-mac.git
 cd nonny-Tunnel-for-mac
-```
-
-### 2. รัน Setup ครั้งแรก
-
-```bash
 ./setup.sh
 ```
 
-สคริปต์จะทำงานดังนี้:
-1. ✅ ตรวจสอบโปรแกรมที่จำเป็น (curl, uv, MCP Server, Node.js)
-2. 📱 ตรวจจับสถาปัตยกรรมเครื่อง Mac ของคุณ (Apple Silicon หรือ Intel)
-3. ⬇️ ดาวน์โหลด `tunnel-client` ตัวล่าสุดจาก GitHub
-4. 🔒 ตรวจสอบความถูกต้องไฟล์ด้วย SHA-256
-5. 🌐 เปิดหน้า **Web Setup UI** ที่ `http://localhost:3847` ให้อัตโนมัติ
+### 2. เข้าใช้งานแดชบอร์ด
 
-### 3. ตั้งค่าผ่าน Web UI
-
-หน้าเว็บแบ่งออกเป็น 3 ขั้นตอน:
-- **① Prerequisites** — ตรวจสอบความพร้อมของระบบ
-- **② Configuration** — กรอก Tunnel ID และ OpenAI Runtime API Key แล้วกด **🔍 Test Connection** เพื่อทดสอบ
-- **③ Tunnel** — กด Start เพื่อเริ่ม Tunnel, ดู Log แบบเรียลไทม์ และก็อปปี้ Prompt ไปสั่ง ChatGPT
-
-### 4. การใช้งานในแต่ละวัน (Daily Use)
-
-เมื่อตั้งค่าเสร็จแล้ว ในวันถัดๆ ไป เพียงรันคำสั่ง:
-
-```bash
-./start.sh          # รันปกติพร้อมตรวจ Preflight Doctor
-./start.sh --fast   # รันแบบเร็วพิเศษ (Fast mode < 1 วินาที)
-```
-
-หรือถ้าต้องการเปลี่ยน Tunnel ID / API Key ให้รัน:
-
-```bash
-./configure.sh
-```
-
-### 5. เชื่อมต่อใน ChatGPT
-
-1. เข้าไปที่ [ChatGPT Plugins](https://chatgpt.com/plugins)
-2. กดปุ่ม **+** เพื่อสร้าง Developer-mode App
-3. เลือกการเชื่อมต่อแบบ **Tunnel**
-4. เลือก Tunnel ของคุณ หรือใส่ Tunnel ID
-5. เริ่มคุยกับ ChatGPT ได้ทันที โดยพิมพ์สั่ง เช่น:
-
-```
-Activate the project /Users/username/my-project, then show the current configuration.
-```
-
----
-
-## โครงสร้างไฟล์ในโปรเจกต์
-
-```
-nonny-Tunnel-for-mac/
-├── setup.sh              # สคริปต์ติดตั้งครั้งแรก
-├── configure.sh          # สคริปต์เปิดหน้าตั้งค่า credentials
-├── start.sh              # สคริปต์เริ่มทำงาน Tunnel (รองรับ --fast)
-├── profiles/
-│   └── nonny-tunnel.yaml # Template การตั้งค่า Profile
-├── config/
-│   ├── README.md
-│   └── team.env          # เก็บ Tunnel ID (ไม่ถูก commit ขึ้น git)
-├── web-ui/
-│   ├── package.json
-│   ├── server.js         # Backend Express API พร้อม Caching & Parallel checks
-│   └── public/
-│       └── index.html    # หน้า Dashboard UI พร้อมระบบ Test Connection
-├── .gitignore
-├── README.md             # คู่มือภาษาอังกฤษ
-├── README.th.md          # คู่มือภาษาไทย
-└── LICENSE
-```
+- 🔐 **หน้าจัดการ Tunnel & Credentials**: [http://localhost:3847](http://localhost:3847)
+- 👥 **หน้า Multi-Agent Swarm Dashboard**: [http://localhost:3847/swarm](http://localhost:3847/swarm)
 
 ---
 
 ## ความปลอดภัย (Security)
 
-- **API Key** จะถูกเข้ารหัสและบันทึกลงใน **macOS Keychain** ของผู้ใช้ปัจจุบันเท่านั้น
-- **Tunnel ID** ถูกเก็บแยกไว้ที่ `config/team.env`
-- ไฟล์ที่เป็นความลับทั้งหมดถูกเพิ่มใน `.gitignore` เรียบร้อยแล้ว จะไม่หลุดขึ้น GitHub แน่นอน
-- ⚠️ **คำแนะนำ**: อย่าใช้ Admin API Key เด็ดขาด ให้ใช้ **Runtime API Key** ที่มีสิทธิ์เฉพาะ Tunnel เท่านั้น
+- **API Key** เข้ารหัสใน **macOS Keychain** ของผู้ใช้ปัจจุบัน ไม่มีการบันทึก Plaintext
+- **Git Safe**: ข้อมูลความลับและ Token ทั้งหมดถูกแยกใน `.gitignore` เรียบร้อย
 
 ---
 
 ## License
 
 MIT License — ดูรายละเอียดที่ไฟล์ [LICENSE](LICENSE)
-
----
 
 **สร้างสรรค์ด้วย ⚡ โดย mr.j**
